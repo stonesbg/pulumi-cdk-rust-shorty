@@ -1,0 +1,4 @@
+remotes:
+  - git_url: git@github-personal:stonesbg/lefthook-shared.git
+    configs:
+      - security/trufflehog.yml
