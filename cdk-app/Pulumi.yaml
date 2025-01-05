@@ -1,0 +1,5 @@
+name: pulumi-cdk-rust-shorty
+runtime: nodejs
+config:
+  aws:region:
+    value: us-east-1

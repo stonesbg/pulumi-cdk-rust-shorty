@@ -4,17 +4,17 @@ use aws_sdk_dynamodb::Client;
 
 #[derive(Deserialize)]
 struct Request {
-    path_parameters: PathParameters,
+    pathParameters: PathParameters,
 }
 
 #[derive(Deserialize)]
 struct PathParameters {
-    short_url: String,
+    shortUrl: String,
 }
 
 #[derive(Serialize)]
 struct Response {
-    status_code: u32,
+    statusCode: u32,
     headers: std::collections::HashMap<String, String>,
     body: String,
 }
@@ -24,7 +24,7 @@ async fn function_handler(event: LambdaEvent<Request>) -> Result<Response, Error
     let client = Client::new(&config);
     let table_name = std::env::var("TABLE_NAME")?;
 
-    let short_url = event.payload.path_parameters.short_url;
+    let short_url = event.payload.pathParameters.shortUrl;
 
     // Look up the long URL in DynamoDB
     let result = client.get_item()
@@ -41,7 +41,7 @@ async fn function_handler(event: LambdaEvent<Request>) -> Result<Response, Error
                 if let aws_sdk_dynamodb::types::AttributeValue::S(url) = long_url {
                     headers.insert("Location".to_string(), url.clone());
                     return Ok(Response {
-                        status_code: 302,
+                        statusCode: 302,
                         headers,
                         body: "".to_string(),
                     });
@@ -53,7 +53,7 @@ async fn function_handler(event: LambdaEvent<Request>) -> Result<Response, Error
 
     headers.insert("Content-Type".to_string(), "text/plain".to_string());
     Ok(Response {
-        status_code: 404,
+        statusCode: 404,
         headers,
         body: "URL not found".to_string(),
     })

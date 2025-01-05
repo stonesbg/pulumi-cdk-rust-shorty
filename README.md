@@ -1,10 +1,10 @@
 # URL Shortener
 
-A serverless URL shortener built with AWS CDK (TypeScript) and Rust Lambda functions.
+A serverless URL shortener built with AWS CDK (TypeScript) and Rust Lambda functions initially and then converted to pulumi-cdk afterwards.  This is just a practice project to see how the pulumi-cdk works
 
 ## Architecture
 
-- AWS CDK for infrastructure as code
+- AWS CDK for infrastructure as code / pulumi-cdk
 - DynamoDB for storing URL mappings
 - Lambda functions written in Rust
 - API Gateway for HTTP endpoints
@@ -32,15 +32,21 @@ A serverless URL shortener built with AWS CDK (TypeScript) and Rust Lambda funct
 2. Build Rust functions:
    ```bash
    cd rust/create-url
-   cargo build --release
+   cargo lambda build --release --output-format zip
    cd ../redirect-url
-   cargo build --release
+   cargo lambda build --release --output-format zip
    ```
 
 3. Deploy:
+   1. Cdk flavor
    ```bash
    cd ../../cdk-app
    cdk deploy
+   ```
+   2. Pulumi flavor
+   ```
+   cd ../../cdk-app
+   pulumi up
    ```
 
 ## Usage

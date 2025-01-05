@@ -1,36 +1,63 @@
-use lambda_runtime::{run, service_fn, Error, LambdaEvent};
+use lambda_http::{run, service_fn, RequestPayloadExt, Body, Error, Request, IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use aws_sdk_dynamodb::{Client};
 use rand::Rng;
 use base64::Engine;
 
 #[derive(Deserialize)]
-struct Request {
+struct LambdaRequest {
     url: String,
 }
 
 #[derive(Serialize)]
-struct Response {
+struct LambdaResponse {
     short_url: String,
 }
 
-async fn function_handler(event: LambdaEvent<Request>) -> Result<Response, Error> {
+async fn function_handler(event: Request) -> Result<impl IntoResponse, Error> {
     let config = aws_config::load_from_env().await;
     let client = Client::new(&config);
     let table_name = std::env::var("TABLE_NAME")?;
 
-    // Generate a random short URL
-    let short_url = generate_short_url();
+    match event.payload::<LambdaRequest>() {
+        Ok(Some(body)) => {
+            // Successfully deserialized the body
+            println!("Received URL: {}", body.url);
+            // Generate a random short URL
+            let short_url = generate_short_url();
 
-    // Store the mapping in DynamoDB
-    client.put_item()
-        .table_name(table_name)
-        .item("short_url", aws_sdk_dynamodb::types::AttributeValue::S(short_url.clone()))
-        .item("long_url", aws_sdk_dynamodb::types::AttributeValue::S(event.payload.url))
-        .send()
-        .await?;
+            tracing::info!("Short URL: {}", short_url);
+            tracing::info!("Long URL: {}", body.url);
 
-    Ok(Response { short_url })
+            // Store the mapping in DynamoDB
+            client.put_item()
+                .table_name(table_name)
+                .item("short_url", aws_sdk_dynamodb::types::AttributeValue::S(short_url.clone()))
+                .item("long_url", aws_sdk_dynamodb::types::AttributeValue::S(body.url))
+                .send()
+                .await?;
+
+            Ok(Response::builder()
+                .status(200)
+                .body(Body::Text(serde_json::to_string(&LambdaResponse { short_url }).unwrap()))
+                .unwrap())
+        },
+        Ok(None) => {
+            // No body in the request
+            Ok(Response::builder()
+                .status(400)
+                .body("Missing request body".into())
+                .unwrap())
+        },
+        Err(e) => {
+            // Error deserializing the body
+            eprintln!("Error: {:?}", e);
+            Ok(Response::builder()
+                .status(400)
+                .body("Invalid request body".into())
+                .unwrap())
+        }
+    }
 }
 
 fn generate_short_url() -> String {
